@@ -1,6 +1,8 @@
 set(comp_srcs HumanProtection.cpp )
 set(standalone_srcs HumanProtectionComp.cpp)
 
+set(CMAKE_CXX_FLAGS "-std=c++11")
+
 if(${OPENRTM_VERSION_MAJOR} LESS 2)
   set(OPENRTM_CFLAGS ${OPENRTM_CFLAGS} ${OMNIORB_CFLAGS})
   set(OPENRTM_INCLUDE_DIRS ${OPENRTM_INCLUDE_DIRS} ${OMNIORB_INCLUDE_DIRS})
@@ -39,6 +41,7 @@ MAP_ADD_STR(comp_hdrs "../" comp_headers)
 
 link_directories(${OPENRTM_LIBRARY_DIRS})
 
+# ライブラリの作成
 add_library(${PROJECT_NAME} ${LIB_TYPE} ${comp_srcs}
   ${comp_headers} ${ALL_IDL_SRCS})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
@@ -49,10 +52,10 @@ endif(NOT TARGET ALL_IDL_TGT)
 add_dependencies(${PROJECT_NAME} ALL_IDL_TGT)
 target_link_libraries(${PROJECT_NAME} ${OPENRTM_LIBRARIES})
 
-add_executable(${PROJECT_NAME}Comp ${standalone_srcs}
-  ${comp_srcs} ${comp_headers} ${ALL_IDL_SRCS})
+# 実行ファイルの作成 (修正済み: IDLソースを含めない)
+add_executable(${PROJECT_NAME}Comp ${standalone_srcs})
 add_dependencies(${PROJECT_NAME}Comp ALL_IDL_TGT)
-target_link_libraries(${PROJECT_NAME}Comp ${OPENRTM_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}Comp ${PROJECT_NAME} ${OPENRTM_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}Comp
     EXPORT ${PROJECT_NAME}
