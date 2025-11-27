@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 find_package(OpenRTM REQUIRED)
 
-# IDLコンパイルマクロの定義
+# マクロ定義 (RTMtoROSと同じ構成にします)
 macro(_IDL_OUTPUTS _idl _dir _result)
     set(${_result} ${_dir}/${_idl}Skel.cpp ${_dir}/${_idl}Skel.h ${_dir}/${_idl}Stub.cpp ${_dir}/${_idl}Stub.h)
 endmacro(_IDL_OUTPUTS)
@@ -10,7 +10,7 @@ macro(_COMPILE_IDL _idl_file)
     execute_process(COMMAND rtm-config --idlc OUTPUT_VARIABLE OPENRTM_IDLC OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND rtm-config --idlflags OUTPUT_VARIABLE OPENRTM_IDLFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
     separate_arguments(OPENRTM_IDLFLAGS)
-
+    
     get_filename_component(_idl ${_idl_file} NAME_WE)
     set(_idl_srcs_var ${_idl}_SRCS)
     _IDL_OUTPUTS(${_idl} ${CMAKE_CURRENT_BINARY_DIR} ${_idl_srcs_var})
@@ -24,7 +24,7 @@ macro(_COMPILE_IDL _idl_file)
 
     add_custom_target(${_idl}_TGT DEPENDS ${${_idl_srcs_var}})
     set(ALL_IDL_SRCS ${ALL_IDL_SRCS} ${${_idl_srcs_var}})
-
+    
     if(NOT TARGET ALL_IDL_TGT)
         add_custom_target(ALL_IDL_TGT)
     endif(NOT TARGET ALL_IDL_TGT)
@@ -37,7 +37,7 @@ macro(OPENRTM_COMPILE_IDL_FILES)
     endforeach(idl)
 endmacro(OPENRTM_COMPILE_IDL_FILES)
 
-# IDLファイル名の指定（絶対パスではなくファイル名のみにする）
+# 修正箇所: ファイル名のみを指定
 set(idls TimedPose3DQuaternion.idl)
 
 OPENRTM_COMPILE_IDL_FILES(${idls})
