@@ -41,18 +41,19 @@ MAP_ADD_STR(comp_hdrs "../" comp_headers)
 
 link_directories(${OPENRTM_LIBRARY_DIRS})
 
-# ライブラリの作成
+# ライブラリ作成 (IDLソースを含む)
 add_library(${PROJECT_NAME} ${LIB_TYPE} ${comp_srcs}
   ${comp_headers} ${ALL_IDL_SRCS})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 set_source_files_properties(${ALL_IDL_SRCS} PROPERTIES GENERATED 1)
+
 if(NOT TARGET ALL_IDL_TGT)
  add_custom_target(ALL_IDL_TGT)
 endif(NOT TARGET ALL_IDL_TGT)
 add_dependencies(${PROJECT_NAME} ALL_IDL_TGT)
 target_link_libraries(${PROJECT_NAME} ${OPENRTM_LIBRARIES})
 
-# 実行ファイルの作成 (修正済み: IDLソースを含めない)
+# 実行ファイル作成 (IDLソースを含めない)
 add_executable(${PROJECT_NAME}Comp ${standalone_srcs})
 add_dependencies(${PROJECT_NAME}Comp ALL_IDL_TGT)
 target_link_libraries(${PROJECT_NAME}Comp ${PROJECT_NAME} ${OPENRTM_LIBRARIES})

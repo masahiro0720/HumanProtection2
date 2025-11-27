@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 find_package(OpenRTM REQUIRED)
 
-# マクロ定義 (RTMtoROSと同じ構成にします)
+# 【修正1】Stub.cpp を削除 (リンクエラー回避)
 macro(_IDL_OUTPUTS _idl _dir _result)
-    set(${_result} ${_dir}/${_idl}Skel.cpp ${_dir}/${_idl}Skel.h ${_dir}/${_idl}Stub.cpp ${_dir}/${_idl}Stub.h)
+    set(${_result} ${_dir}/${_idl}Skel.cpp ${_dir}/${_idl}Skel.h ${_dir}/${_idl}Stub.h)
 endmacro(_IDL_OUTPUTS)
 
 macro(_COMPILE_IDL _idl_file)
@@ -16,8 +16,10 @@ macro(_COMPILE_IDL _idl_file)
     _IDL_OUTPUTS(${_idl} ${CMAKE_CURRENT_BINARY_DIR} ${_idl_srcs_var})
 
     add_custom_command(OUTPUT ${${_idl_srcs_var}}
-        COMMAND python -u /usr/bin/rtm-skelwrapper --include-dir="" --skel-suffix=Skel --stub-suffix=Stub --idl-file=${_idl}.idl
-        COMMAND ${OPENRTM_IDLC} ${OPENRTM_IDLFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR} ${_idl_file}
+        # 【修正2】idl-file に絶対パスを指定
+        COMMAND python -u /usr/bin/rtm-skelwrapper --include-dir="" --skel-suffix=Skel --stub-suffix=Stub --idl-file=${CMAKE_CURRENT_SOURCE_DIR}/${_idl}.idl
+        # 【修正3】コンパイル対象ファイルも絶対パスで指定
+        COMMAND ${OPENRTM_IDLC} ${OPENRTM_IDLFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${_idl}.idl
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${_idl_file}
         COMMENT "Compiling ${_idl_file}")
@@ -37,7 +39,7 @@ macro(OPENRTM_COMPILE_IDL_FILES)
     endforeach(idl)
 endmacro(OPENRTM_COMPILE_IDL_FILES)
 
-# 修正箇所: ファイル名のみを指定
+# IDLファイル名のみを指定
 set(idls TimedPose3DQuaternion.idl)
 
 OPENRTM_COMPILE_IDL_FILES(${idls})
