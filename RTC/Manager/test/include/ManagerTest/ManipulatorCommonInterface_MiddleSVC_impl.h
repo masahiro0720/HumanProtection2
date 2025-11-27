@@ -8,7 +8,7 @@
 #include "ManipulatorCommonInterface_DataTypesSkel.h"
 #include "BasicDataTypeSkel.h"
 
-#include "ManipulatorCommonInterface_MiddleSkel.h"
+#include "ManipulatorCommonInterface_MiddleLevelSkel.h"
 
 #ifndef MANIPULATORCOMMONINTERFACE_MIDDLESVC_IMPL_H
 #define MANIPULATORCOMMONINTERFACE_MIDDLESVC_IMPL_H

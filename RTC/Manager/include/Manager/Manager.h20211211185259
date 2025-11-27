@@ -22,7 +22,7 @@
 // Service Consumer stub headers
 // <rtc-template block="consumer_stub_h">
 #include "ManipulatorCommonInterface_CommonStub.h"
-#include "ManipulatorCommonInterface_MiddleStub.h"
+#include "ManipulatorCommonInterface_MiddleLevelStub.h"
 #include "BasicDataTypeStub.h"
 
 // </rtc-template>
