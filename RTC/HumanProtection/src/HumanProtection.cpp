@@ -1,7 +1,7 @@
 ﻿// -*- C++ -*-
 /*!
  * @file  HumanProtection.cpp
- * @brief Human Protection RT Component 
+ * @brief Human Protection RT Component
  * @date $Date$
  *
  * $Id$
@@ -122,75 +122,48 @@ RTC::ReturnCode_t HumanProtection::onDeactivated(RTC::UniqueId ec_id)
 
 RTC::ReturnCode_t HumanProtection::onExecute(RTC::UniqueId ec_id)
 {
-
-  std::cout << "z:= " << m_human_pose.pose_q.p3D.z << std::endl;
-
+  // データが来ているかチェック
   if (m_human_poseIn.isNew())
   {
     m_human_poseIn.read();
+    
+    std::cout << "z:= " << m_human_pose.pose_q.p3D.z << std::endl;
 
+    // Detectionから (0,0,0) が来た場合は「手がない」＝「安全」
     if (m_human_pose.pose_q.p3D.x == 0 && m_human_pose.pose_q.p3D.y == 0 && m_human_pose.pose_q.p3D.z == 0)
-      return RTC::RTC_OK; 
+    {
+      m_stop_com.data = 0; // 安全
+      // printf("No Hand. stop_com=%d\r\n", m_stop_com.data);
+    }
+    // 手の距離(z)が0より大きく、かつ判定パラメータ以下なら「危険」
     else if ( 0 < m_human_pose.pose_q.p3D.z && m_human_pose.pose_q.p3D.z <= m_judge_parameter)
     {
-      m_stop_com.data = 1;
-      printf("stop_com=%d\r\n", m_stop_com.data);
+      m_stop_com.data = 1; // 危険（停止）
+      printf("DANGER! stop_com=%d\r\n", m_stop_com.data);
     }
+    // それ以外（遠くにある）なら「安全」
     else
     {
-      m_stop_com.data = 0;
-      printf("stop_com=%d\r\n", m_stop_com.data);
+      m_stop_com.data = 0; // 安全
+      printf("Safe. stop_com=%d\r\n", m_stop_com.data);
     }
     
+    // コマンド出力
     m_stop_comOut.write();
   }
+  // データが来ていない場合（基本的にここには入らない想定だが、念のため安全側に倒す）
   else  
   {
-    m_stop_com.data = 0;
-    printf("Init stop_com=%d\r\n", m_stop_com.data);
-    m_stop_comOut.write();
+    // 前回値を保持するか、安全とするか。ここでは一応データ更新がないときは書き込まない、
+    // もしくは安全(0)を送る。Detectionが常に送ってくるはずなので、ここはデバッグ用。
+    // m_stop_com.data = 0;
+    // printf("No Data. stop_com=%d\r\n", m_stop_com.data);
+    // m_stop_comOut.write();
   }
     
 
   return RTC::RTC_OK;
 }
-
-/*
-RTC::ReturnCode_t HumanProtection::onAborting(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanProtection::onError(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanProtection::onReset(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanProtection::onStateUpdate(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanProtection::onRateChanged(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-
 
 extern "C"
 {
@@ -204,5 +177,3 @@ extern "C"
   }
 
 };
-
-

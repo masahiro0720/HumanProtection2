@@ -1,7 +1,7 @@
 ﻿// -*- C++ -*-
 /*!
  * @file  HumanDetection.cpp
- * @brief Human Detection RT Component 
+ * @brief Human Detection RT Component
  * @date $Date$
  *
  * $Id$
@@ -41,7 +41,7 @@ void onHandUpdate(tdv::nuitrack::HandTrackerData::Ptr handData)
   if (!handData)
   {
       // No hand data
-      std::printf("No hand data\n");
+      // std::printf("No hand data\n");
       return;
   }
 
@@ -143,9 +143,17 @@ RTC::ReturnCode_t HumanDetection::onExecute(RTC::UniqueId ec_id)
 {
   tdv::nuitrack::Nuitrack::waitUpdate(handTracker);
   
+  // 【修正】手が検出されない場合
   if(userHands.empty())
   {
-    std::printf("No user hands \n");
+    // std::printf("No user hands - Sending Safe Data (0,0,0)\n");
+    
+    // 安全を示すために座標に0を入れて送信する
+    m_RightHandPose.pose_q.p3D.x = 0.0;
+    m_RightHandPose.pose_q.p3D.y = 0.0;
+    m_RightHandPose.pose_q.p3D.z = 0.0;
+    m_RightHandPoseOut.write();
+
     return RTC::RTC_OK;
   }
 
@@ -157,9 +165,12 @@ RTC::ReturnCode_t HumanDetection::onExecute(RTC::UniqueId ec_id)
 
   if (!rightHand)
   {
-    // No right hand
-    std::printf("Right hand of the first user is not found\n");
-    RTC::RTC_OK;
+    // 右手が見つからない場合も安全データを送る
+    // std::printf("Right hand not found\n");
+    m_RightHandPose.pose_q.p3D.x = 0.0;
+    m_RightHandPose.pose_q.p3D.y = 0.0;
+    m_RightHandPose.pose_q.p3D.z = 0.0;
+    m_RightHandPoseOut.write();
   }
   else
   {
@@ -175,61 +186,27 @@ RTC::ReturnCode_t HumanDetection::onExecute(RTC::UniqueId ec_id)
 
   if (!leftHand)
   {
-    // No right hand
-    std::printf("Left hand of the first user is not found\n");
-    RTC::RTC_OK;
+    // 左手は今回は使わないが念の為
+    // No left hand
+    // std::printf("Left hand of the first user is not found\n");
+    m_LeftHandPose.pose_q.p3D.x = 0.0;
+    m_LeftHandPose.pose_q.p3D.y = 0.0;
+    m_LeftHandPose.pose_q.p3D.z = 0.0; 
+    m_LeftHandPoseOut.write();
   }
   else
   {
-    std::printf("Light hand position: x = %.0f, y = %.0f, z = %.0f\n", leftHand->xReal, leftHand->yReal, leftHand->zReal);
+    // std::printf("Light hand position: x = %.0f, y = %.0f, z = %.0f\n", leftHand->xReal, leftHand->yReal, leftHand->zReal);
 
     m_LeftHandPose.pose_q.p3D.x = leftHand->xReal;
     m_LeftHandPose.pose_q.p3D.y = leftHand->yReal;
     m_LeftHandPose.pose_q.p3D.z = leftHand->zReal; 
-
 
     m_LeftHandPoseOut.write();
   }
 
   return RTC::RTC_OK;
 }
-
-/*
-RTC::ReturnCode_t HumanDetection::onAborting(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanDetection::onError(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanDetection::onReset(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanDetection::onStateUpdate(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t HumanDetection::onRateChanged(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-
 
 extern "C"
 {
@@ -243,5 +220,3 @@ extern "C"
   }
 
 };
-
-

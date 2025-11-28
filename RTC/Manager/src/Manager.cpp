@@ -10,7 +10,6 @@
 #include "Manager.h"
 
 // Module specification
-// <rtc-template block="module_spec">
 static const char* manager_spec[] =
   {
     "implementation_id", "Manager",
@@ -26,14 +25,8 @@ static const char* manager_spec[] =
     "lang_type",         "compile",
     ""
   };
-// </rtc-template>
 
-/*!
- * @brief constructor
- * @param manager Maneger Object
- */
 Manager::Manager(RTC::Manager* manager)
-    // <rtc-template block="initializer">
   : RTC::DataFlowComponentBase(manager),
     m_safetyIn("safety", m_safety),
     m_end_moveIn("end_move", m_end_move),
@@ -42,313 +35,169 @@ Manager::Manager(RTC::Manager* manager)
     m_start_moveOut("start_move", m_start_move),
     m_ManipulatorCommonInterface_CommonPort("ManipulatorCommonInterface_Common"),
     m_ManipulatorCommonInterface_MiddlePort("ManipulatorCommonInterface_Middle")
-
-    // </rtc-template>
 {
 }
 
-/*!
- * @brief destructor
- */
 Manager::~Manager()
 {
 }
 
-
-
 RTC::ReturnCode_t Manager::onInitialize()
 {
-  // Registration: InPort/OutPort/Service
-  // <rtc-template block="registration">
-  // Set InPort buffers
   addInPort("safety", m_safetyIn);
   addInPort("end_move", m_end_moveIn);
   addInPort("end_manip", m_end_manipIn);
 
-  // Set OutPort buffer
   addOutPort("stop", m_stopOut);
   addOutPort("start_move", m_start_moveOut);
 
-  // Set service provider to Ports
-
-  // Set service consumers to Ports
   m_ManipulatorCommonInterface_CommonPort.registerConsumer("ManipulatorCommonInterface_Common", "JARA_ARM::ManipulatorCommonInterface_Common", m_ManipulatorCommonInterface_Common);
   m_ManipulatorCommonInterface_MiddlePort.registerConsumer("ManipulatorCommonInterface_Middle", "JARA_ARM::ManipulatorCommonInterface_Middle", m_ManipulatorCommonInterface_Middle);
 
-  // Set CORBA Service Ports
   addPort(m_ManipulatorCommonInterface_CommonPort);
   addPort(m_ManipulatorCommonInterface_MiddlePort);
 
-  // </rtc-template>
-
-  // <rtc-template block="bind_config">
-  // </rtc-template>
-
   return RTC::RTC_OK;
 }
-
-
-
-/*
-RTC::ReturnCode_t Manager::onFinalize()
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onStartup(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onShutdown(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
 
 RTC::ReturnCode_t Manager::onActivated(RTC::UniqueId ec_id)
 {
-   //プロバイダより遅くActivateするため
   sleep(1);
+  std::cout << "Manager Activated: Sequence Loop Start." << std::endl;
+  
+  phase = 0;          
+  wait_timer = 0;     
+  was_danger = false; 
 
-  m_start_move.data = "front";
-  std::cout << "移動開始します" << std::endl;
-  std::cout << "goal_:" << goal_ <<std::endl;
+  // --- 座標データの定義 ---
+  // Pick1姿勢
+  Pick1Point.length(6);
+  Pick1Point[0] = 0.000;
+  Pick1Point[1] = -0.098;
+  Pick1Point[2] = 0.233;
+  Pick1Point[3] = 0.000;
+  Pick1Point[4] = 1.385;
+  Pick1Point[5] = 0.000;
 
-  // JARA_ARM::JointPos jointPoint;
-  // jointPoint.length(6);
-  // jointPoint[0] = -0.390;
-  // jointPoint[1] = 0.054;
-  // jointPoint[2] = 0.485;
-  // jointPoint[3] = 0.037;
-  // jointPoint[4] = 1.200;
-  // jointPoint[5] = -0.457;
+  // Place姿勢
+  PlacePoint.length(6);
+  PlacePoint[0] = -1.555;
+  PlacePoint[1] = -1.181;
+  PlacePoint[2] = 0.673;
+  PlacePoint[3] = 0.000;
+  PlacePoint[4] = 0.609;
+  PlacePoint[5] = 0.000;
 
-  // jointPoint.length(6);
-
-  // std::vector<JARA_ARM::JointPos> joint_info;
-
-  // joint情報 ファイル読み込み
-
-  // for(int i = 0; i < jointPoint.length(6), i++)
-  // {
-  //   // ファイル読み込んで、
-  //   //file joint info value
-  //   joint_info.push_back();
-  //   //jointPoint[i] = joint_info[i];
-  // }
-
-  // 対象物まで移動
-  // Pick
-  // side move
-  // Place
-  // home
+  // Pick2姿勢
+  Pick2Point.length(6);
+  Pick2Point[0] = -1.555;
+  Pick2Point[1] = 0.006;
+  Pick2Point[2] = 0.135;
+  Pick2Point[3] = 0.000;
+  Pick2Point[4] = 1.486;
+  Pick2Point[5] = 0.000;
 
   return RTC::RTC_OK;
 }
-
 
 RTC::ReturnCode_t Manager::onDeactivated(RTC::UniqueId ec_id)
 {
   return RTC::RTC_OK;
 }
 
-
+// 動作指令を送信するヘルパー関数
+void Manager::sendCurrentMotion()
+{
+    JARA_ARM::JointPos targetPoint;
+    
+    switch(phase) {
+        case 0: 
+            std::cout << ">>> Move to Pick1." << std::endl;
+            targetPoint = Pick1Point;
+            break;
+        case 1: 
+            std::cout << ">>> Move to Place." << std::endl;
+            targetPoint = PlacePoint;
+            break;
+        case 2: 
+            std::cout << ">>> Move to Pick2." << std::endl;
+            targetPoint = Pick2Point;
+            break;
+        case 3: 
+            std::cout << ">>> Move to Place." << std::endl;
+            targetPoint = PlacePoint;
+            break;
+        default:
+            phase = 0;
+            targetPoint = Pick1Point;
+            break;
+    }
+    m_ManipulatorCommonInterface_Middle->movePTPJointAbs(targetPoint);
+}
 
 RTC::ReturnCode_t Manager::onExecute(RTC::UniqueId ec_id)
 {
-   if(goal_ == "not")
+  if(m_safetyIn.isNew())
   {
-    // 移動開始
-    std::cout << "start_move:" << m_start_move.data <<std::endl;
-    m_start_moveOut.write();
-
-    // printf("m_end_moveIn.isNew():=%3d",m_end_moveIn.isNew());
-
-    if(m_end_moveIn.isNew())
-    {
-      std::cout << "移動終了しました" << std::endl;
-
-      // ROS側から到着命令受信
-      m_end_moveIn.read();
-      goal_ = m_end_move.data;
-      printf("goal_:=%3s", goal_.c_str());
-      
-      if(goal_ == "end_move" && count == 1)
-      {
-        m_start_move.data = "front";
-        m_start_moveOut.write();
-        goal_ = "not";
-        count = 0;
-      }
-    }
-    else
-      printf("まだもらっていません。\n");
-  }
-
-  // std::cout << "goal_1:=" << goal_ << std::endl;
-
-  //safetyにデータが入ってきているかチェック
-  if(m_safetyIn.isNew() && goal_ == "end_move")
-  {
-
-    //データがあれば下記関数で変数にデータを読み込む
     m_safetyIn.read();
-
-    //safetyのデータが0であれば，関節角度を送信
-    if(m_safety.data == 0)
-    {
-      //joint ros send １回だけ呼ぶこと
-      if(count == 0)
-      {
-          JARA_ARM::JointPos jointPoint;
-          JARA_ARM::JointPos setPoint, initPoint;
-          jointPoint.length(6);
-          jointPoint[0] = -0.390;
-          jointPoint[1] = 0.054;
-          jointPoint[2] = 0.485;
-          jointPoint[3] = 0.037;
-          jointPoint[4] = 1.200;
-          jointPoint[5] = -0.457;
-
-          setPoint.length(6);
-          setPoint[0] = 1.57;
-          setPoint[1] = 0.131;
-          setPoint[2] = -0.265;
-          setPoint[3] = 0;
-          setPoint[4] = 1.453;
-          setPoint[5] = 0;
-
-          initPoint.length(6);
-          initPoint[0] = 0;
-          initPoint[1] = 0;
-          initPoint[2] = 0;
-          initPoint[3] = 0;
-          initPoint[4] = 0;
-          initPoint[5] = 0;
-          
-          hogehoge = 0;
-
-         // 次のjoint情報を格納
-         if(hoge == 1)
-         {
-           for(int i = 0; i < 6; i++)
-          {
-           jointPoint[i] = setPoint[i];
-          }
-         }
-         if(hoge == 2)
-         {
-           for(int i = 0; i < 6; i++)
-          {
-           jointPoint[i] = initPoint[i];
-          }
-          hogehoge = 1;
-          hoge = 0;           
-         }
-
-        std::cout << "jointPoint[0]:=" << jointPoint[0] << std::endl;
-        std::cout << "hoge:=" << hoge << std::endl;
-        m_ManipulatorCommonInterface_Middle->movePTPJointAbs(jointPoint);
-
-        count++;
-      }
-
-    }
-    else
-    {
-      // ros send
-      m_stop.data = "1";
-
-      m_stopOut.write();
-    }
-
-    std::cout << "m_end_manipIn.isNew:=" << m_end_manipIn.isNew() << std::endl;
-
-    // Manipが終了したかチェック
-    if(m_end_manipIn.isNew() && goal_ == "end_move")
-    {
-      m_end_manipIn.read();
-      manip_end = m_end_manip.data;
-      // std::cout << "m_end_manip.data_before:=" << m_end_manip.data << std::endl;
-      // std::cout << "m_manipend:=" << manipend << std::endl;
-
-      if(manip_end == "end_manip")
-      {
-        std::cout << "m_end_manip.data_after:=" << m_end_manip.data << std::endl;
-
-
-        
-
-        // pick and place処理を一通り終了した場合、移動backに入る
-        m_start_move.data = "back";
-        goal_ = "not";
-        std::cout << "m_start_move.data:=" << m_start_move.data << std::endl;
-        std::cout << "goal_:=" << goal_ << std::endl;
-        count = 1;
-        if(hogehoge == 0){
-          hoge++;
-        }
-        for(int i = 0; i < 10; i++)
-        {
-          m_start_moveOut.write();
-        }
-      }
-    }
-    else  
-      std::cout << "Manipulation動作中" << std::endl;
   }
-  else
-    std::cout << "safetyからのデータを受信していません" << std::endl;
+
+  // ============================================================
+  // 1. 危険検知時 (safety != 0) -> 強制停止
+  // ============================================================
+  if(m_safety.data != 0)
+  {
+    // 停止信号（ありえない値 999.0）を送信して、ブリッジ側で急停止させる
+    JARA_ARM::JointPos stopCmd;
+    stopCmd.length(6);
+    for(int i=0; i<6; i++) stopCmd[i] = 999.0;
+    m_ManipulatorCommonInterface_Middle->movePTPJointAbs(stopCmd);
+
+    // ログ表示
+    // std::cout << "DANGER DETECTED! SENDING STOP SIGNAL (999.0)." << std::endl;
+    
+    m_stop.data = "1";
+    m_stopOut.write();
+    was_danger = true;
+    
+    return RTC::RTC_OK; 
+  }
+  // ============================================================
+  // 2. 安全時 (safety == 0) -> 動作継続 / 再開
+  // ============================================================
+  else 
+  {
+    m_stop.data = "0";
+    m_stopOut.write();
+
+    // ★復帰処理★
+    if (was_danger)
+    {
+        std::cout << "Safety Restored. RESUMING Current Motion." << std::endl;
+        sendCurrentMotion(); // 中断していた動作を再送信
+        was_danger = false;
+    }
+
+    if (wait_timer > 0) {
+        wait_timer--;
+        return RTC::RTC_OK;
+    }
+
+    // 待機終了、次の動作へ
+    sendCurrentMotion();
+
+    phase++;
+    if (phase > 3) phase = 0;
+
+    // 3秒待機 (800Hz換算で2400)
+    wait_timer = 2400; 
+  }
 
   return RTC::RTC_OK;
 }
-
-/*
-RTC::ReturnCode_t Manager::onAborting(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onError(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onReset(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onStateUpdate(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-/*
-RTC::ReturnCode_t Manager::onRateChanged(RTC::UniqueId ec_id)
-{
-  return RTC::RTC_OK;
-}
-*/
-
-
 
 extern "C"
 {
-
   void ManagerInit(RTC::Manager* manager)
   {
     coil::Properties profile(manager_spec);
@@ -356,7 +205,4 @@ extern "C"
                              RTC::Create<Manager>,
                              RTC::Delete<Manager>);
   }
-
 };
-
-
